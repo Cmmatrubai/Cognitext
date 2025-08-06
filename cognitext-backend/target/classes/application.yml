@@ -1,0 +1,43 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: cognitext-backend
+
+  # CORS Configuration
+  web:
+    cors:
+      allowed-origins: "*"
+      allowed-methods: "*"
+      allowed-headers: "*"
+
+# Gemini AI Configuration
+gemini:
+  api:
+    key: ${GEMINI_API_KEY:}
+
+# Logging
+logging:
+  level:
+    com.cognitext: DEBUG
+    org.springframework.web: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Development Profile
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  devtools:
+    restart:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
