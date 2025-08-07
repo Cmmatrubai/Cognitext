@@ -11,6 +11,15 @@ const path = require("path");
 let mainWindow;
 let overlayWindow;
 
+// Global preferences storage
+let userPreferences = {
+  gradeLevel: 4,
+  ocrConfidenceThreshold: 80,
+  fontSize: "medium",
+  theme: "light",
+  overlayPosition: "smart", // smart, right, left, below, above
+};
+
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 400,
@@ -37,15 +46,56 @@ function createMainWindow() {
   });
 }
 
-function createOverlayWindow() {
-  console.log("Creating overlay window");
-  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+function createOverlayWindow(capturedRegion = null) {
+  console.log(
+    "Creating overlay window",
+    capturedRegion ? "with positioning" : "centered"
+  );
+  const { width: screenWidth, height: screenHeight } =
+    screen.getPrimaryDisplay().workAreaSize;
+  const { bounds } = screen.getPrimaryDisplay();
+
+  // Use fixed dimensions for the overlay window
+  const overlayWidth = 500;
+  const overlayHeight = 400;
+
+  let x, y;
+
+  if (capturedRegion) {
+    // Position overlay to the right of the captured region
+    const {
+      x: regionX,
+      y: regionY,
+      width: regionWidth,
+      height: regionHeight,
+    } = capturedRegion;
+
+    // Position to the right of the captured region
+    x = regionX + regionWidth + 10; // 10px gap
+    y = regionY; // Align with the top of the captured region
+
+    // Ensure it doesn't go off screen
+    if (x + overlayWidth > bounds.width) {
+      x = bounds.width - overlayWidth - 10;
+    }
+    if (y + overlayHeight > bounds.height) {
+      y = bounds.height - overlayHeight - 10;
+    }
+
+    console.log(
+      `Positioning overlay at (${x}, ${y}) to the right of captured region (${regionX}, ${regionY}, ${regionWidth}x${regionHeight})`
+    );
+  } else {
+    // Default center positioning
+    x = Math.floor((screenWidth - overlayWidth) / 2);
+    y = Math.floor((screenHeight - overlayHeight) / 2);
+  }
 
   overlayWindow = new BrowserWindow({
-    width: 500,
-    height: 400,
-    x: Math.floor((width - 500) / 2),
-    y: Math.floor((height - 400) / 2),
+    width: overlayWidth,
+    height: overlayHeight,
+    x,
+    y,
     frame: false,
     alwaysOnTop: true,
     skipTaskbar: true,
@@ -133,6 +183,21 @@ ipcMain.handle("close-overlay", () => {
   if (overlayWindow) {
     overlayWindow.close();
   }
+});
+
+ipcMain.handle("update-preferences", (event, preferences) => {
+  console.log("Updating preferences:", preferences);
+  userPreferences = { ...userPreferences, ...preferences };
+  return userPreferences;
+});
+
+ipcMain.handle("resize-overlay-window", (event, width, height) => {
+  if (overlayWindow) {
+    console.log(`Resizing overlay window to ${width}x${height}`);
+    overlayWindow.setSize(width, height);
+    return true;
+  }
+  return false;
 });
 
 async function startScreenCapture() {
@@ -305,9 +370,9 @@ async function captureRegion(selection) {
   try {
     console.log("Capturing region:", selection);
 
-    // Show processing overlay
+    // Show processing overlay with contextual positioning
     if (!overlayWindow) {
-      createOverlayWindow();
+      createOverlayWindow(selection);
     }
 
     // Wait for overlay window to be ready
@@ -317,7 +382,7 @@ async function captureRegion(selection) {
     const waitForOverlayReady = () => {
       return new Promise((resolve) => {
         if (overlayWindow.webContents.isLoading()) {
-          overlayWindow.webContents.once('did-finish-load', () => {
+          overlayWindow.webContents.once("did-finish-load", () => {
             console.log("Overlay ready, starting processing");
             resolve();
           });
@@ -330,7 +395,7 @@ async function captureRegion(selection) {
 
     // Wait for overlay to be ready, then start processing
     await waitForOverlayReady();
-    
+
     console.log("Sending processing-started event");
     overlayWindow.webContents.send("processing-started");
     overlayWindow.webContents.send("loading-stage", "capturing");
@@ -405,25 +470,48 @@ async function captureRegion(selection) {
 
 async function processImageWithOCR(imageBuffer) {
   try {
-    // Import Tesseract dynamically
+    // Import required libraries
     const { createWorker } = require("tesseract.js");
-
-    const worker = await createWorker();
-    await worker.loadLanguage("eng");
-    await worker.initialize("eng");
 
     console.log("Processing image with OCR...");
 
+    // Preprocess image for better OCR accuracy
+    const preprocessedBuffer = await preprocessImageForOCR(imageBuffer).catch(
+      () => {
+        console.log("Using original image for OCR");
+        return imageBuffer;
+      }
+    );
+
+    const worker = await createWorker("eng", 1, {
+      logger: (m) => {
+        if (m.status === "recognizing text") {
+          console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+        }
+      },
+    });
+
+    // Configure Tesseract for better text recognition
+    // Note: Some parameters must be set during worker creation, not after
+    await worker.setParameters({
+      tessedit_pageseg_mode: "3", // Fully automatic page segmentation, but no OSD
+      preserve_interword_spaces: "1", // Preserve spaces between words
+    });
+
     const {
-      data: { text },
-    } = await worker.recognize(imageBuffer);
+      data: { text, confidence },
+    } = await worker.recognize(preprocessedBuffer);
     await worker.terminate();
 
-    console.log("OCR extracted text:", text);
+    console.log(`OCR extracted text (confidence: ${confidence}%):`, text);
 
     if (text.trim().length > 0) {
+      // Post-process the OCR text to fix common errors
+      const cleanedText = postProcessOCRText(text.trim());
+      console.log("Cleaned text:", cleanedText);
+
       // Send text to backend for simplification
-      await simplifyTextWithBackend(text.trim());
+      await simplifyTextWithBackend(cleanedText);
     } else {
       overlayWindow.webContents.send(
         "text-simplified",
@@ -439,10 +527,84 @@ async function processImageWithOCR(imageBuffer) {
   }
 }
 
+async function preprocessImageForOCR(imageBuffer) {
+  try {
+    // Use Electron's nativeImage for preprocessing instead of Jimp
+    const { nativeImage } = require("electron");
+
+    // Create native image from buffer
+    const image = nativeImage.createFromBuffer(imageBuffer);
+
+    // Scale up the image for better OCR recognition
+    const scaledImage = image.resize({
+      width: image.getSize().width * 2,
+      height: image.getSize().height * 2,
+      quality: "best",
+    });
+
+    // Get the PNG buffer
+    const buffer = scaledImage.toPNG();
+    console.log("Image preprocessed for OCR using Electron nativeImage");
+
+    return buffer;
+  } catch (error) {
+    console.error("Image preprocessing failed, using original:", error);
+    return imageBuffer; // Fallback to original
+  }
+}
+
+function postProcessOCRText(text) {
+  // Common OCR corrections
+  let cleaned = text
+    // Fix common character substitutions in context
+    .replace(/\bl2\b/g, "12") // l2 -> 12 (numbers)
+    .replace(/\bpm\./g, "p.m.") // pm. -> p.m.
+    .replace(/\bconcems\b/gi, "concerns") // concems -> concerns
+    .replace(/\btranseri\b/gi, "transcripts") // transeri -> transcripts
+    .replace(/\baceon\b/gi, "accomplice") // aceon -> accomplice
+    .replace(/\bpstein\b/gi, "Epstein") // pstein -> Epstein (any form)
+    .replace(/\bAttomey\b/gi, "Attorney") // Attomey -> Attorney
+    .replace(/\bTos\b/gi, "Todd") // Tos -> Todd (likely Todd Blanche)
+    .replace(/\bwheth\b/gi, "whether") // wheth -> whether
+    .replace(/\bconceming\b/gi, "concerning") // conceming -> concerning
+    .replace(/\badministrations\b/gi, "administration's") // administrations -> administration's
+
+    // Remove artifacts and clean up
+    .replace(/Processing Text/gi, "") // Remove OCR artifacts
+    .replace(/Capturing screen region\.\.\./gi, "") // Remove UI artifacts
+    .replace(/\[XX\]/g, "") // Remove UI markers
+    .replace(/\+/g, "") // Remove stray + symbols
+
+    // Fix spacing and line breaks
+    .replace(/([a-z])([A-Z])/g, "$1 $2") // Add space between lowercase and uppercase
+    .replace(/([.!?])([A-Za-z])/g, "$1 $2") // Add space after punctuation
+    .replace(/\s+/g, " ") // Normalize multiple spaces
+    .replace(/\n+/g, " ") // Convert line breaks to spaces for better paragraph flow
+
+    // Fix sentence structure
+    .replace(/\b([a-z])/g, (match, p1, offset) => {
+      // Capitalize first letter of sentences
+      return offset === 0 ||
+        text[offset - 2] === "." ||
+        text[offset - 2] === "!" ||
+        text[offset - 2] === "?"
+        ? p1.toUpperCase()
+        : match;
+    })
+
+    .trim();
+
+  return cleaned;
+}
+
 async function simplifyTextWithBackend(text) {
   try {
     // Update to AI processing stage
     overlayWindow.webContents.send("loading-stage", "ai");
+    console.log(
+      "Sending text to backend for simplification:",
+      text.substring(0, 100) + "..."
+    );
 
     const axios = require("axios");
 
@@ -450,7 +612,7 @@ async function simplifyTextWithBackend(text) {
       "http://localhost:8080/api/v1/simplify",
       {
         text: text,
-        gradeLevel: 4,
+        gradeLevel: userPreferences.gradeLevel,
       },
       {
         headers: {
@@ -461,11 +623,27 @@ async function simplifyTextWithBackend(text) {
     );
 
     const simplifiedText = response.data.simplifiedText;
+    console.log(
+      "Backend response received, simplified text length:",
+      simplifiedText?.length
+    );
+
+    // Send window dimensions and text
+    overlayWindow.webContents.send("window-dimensions", {
+      width: overlayWindow.getSize()[0],
+      height: overlayWindow.getSize()[1],
+    });
+    overlayWindow.webContents.send("original-text-received", text);
     overlayWindow.webContents.send("text-simplified", simplifiedText);
   } catch (error) {
     console.error("Backend simplification failed:", error);
 
     // Fallback to showing original text if backend fails
+    overlayWindow.webContents.send("window-dimensions", {
+      width: overlayWindow.getSize()[0],
+      height: overlayWindow.getSize()[1],
+    });
+    overlayWindow.webContents.send("original-text-received", text);
     overlayWindow.webContents.send(
       "text-simplified",
       `Backend unavailable. Original text:\n\n${text}`

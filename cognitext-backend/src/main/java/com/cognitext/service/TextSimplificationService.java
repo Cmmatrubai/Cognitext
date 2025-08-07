@@ -54,7 +54,7 @@ public class TextSimplificationService {
             );
 
             String response = webClient.post()
-                    .uri("/models/gemini-1.5-flash:generateContent?key=" + geminiApiKey)
+                    .uri("/models/gemini-2.0-flash-exp:generateContent?key=" + geminiApiKey)
                     .header("Content-Type", "application/json")
                     .bodyValue(request)
                     .retrieve()
