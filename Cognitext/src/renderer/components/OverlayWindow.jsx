@@ -16,8 +16,9 @@ function OverlayWindow({
       // Wait a bit for the content to render
       setTimeout(() => {
         const rect = contentRef.current.getBoundingClientRect();
-        const width = Math.ceil(rect.width) + 10; // Add small padding
-        const height = Math.ceil(rect.height) + 10; // Add small padding
+        // Add minimal padding to prevent content from touching window edges
+        const width = Math.ceil(rect.width) + 20; // Increased padding for better spacing
+        const height = Math.ceil(rect.height) + 20; // Increased padding for better spacing
 
         console.log(`Resizing window to content size: ${width}x${height}`);
         window.electronAPI?.resizeOverlayWindow?.(width, height);
@@ -100,11 +101,6 @@ function OverlayWindow({
     }
   }, [isLoading, loadingStage]);
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(text);
-    // Could add a toast notification here
-  };
-
   const getLoadingText = () => {
     switch (loadingStage) {
       case "capturing":
@@ -139,29 +135,29 @@ function OverlayWindow({
     >
       {!isLoading && text ? (
         // Minimal mode - content positioned at top-left corner, no extra space
-        <div className="no-drag absolute top-0 left-0">
+        <div className="absolute top-0 left-0 w-full h-full">
           {/* Minimal transparent overlay for final text */}
-          <div className="minimal-overlay">
+          <div className="minimal-overlay w-full h-full flex items-start justify-start">
             {/* Transparent background with subtle shadow - exact content size */}
             <div
               ref={contentRef}
-              className="relative bg-gray-900 bg-opacity-75 backdrop-blur-sm rounded-lg p-4 shadow-lg border border-gray-300 border-opacity-30 max-w-sm"
+              className="relative bg-gray-900 bg-opacity-90 backdrop-blur-md rounded-xl p-5 shadow-2xl border-2 border-gray-200 border-opacity-50 max-w-md m-2"
+              style={{
+                boxShadow:
+                  "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1)",
+              }}
             >
               {/* Close button - top right corner */}
               <button
                 onClick={onClose}
-                className="absolute -top-2 -right-2 w-6 h-6 bg-gray-600 bg-opacity-80 hover:bg-opacity-100 text-white rounded-full text-sm font-bold flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-md"
+                className="no-drag absolute -top-2 -right-2 w-6 h-6 bg-gray-600 bg-opacity-80 hover:bg-opacity-100 text-white rounded-full text-sm font-bold flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-md"
                 title="Close"
               >
                 ×
               </button>
 
               {/* Text content with high contrast for readability */}
-              <div
-                className="pr-4 cursor-pointer"
-                onDoubleClick={copyToClipboard}
-                title="Double-click to copy text"
-              >
+              <div className="pr-4 text-content">
                 <p
                   className={`text-white leading-relaxed ${getFontSizeClass()} drop-shadow-sm select-text`}
                   style={{
@@ -171,16 +167,6 @@ function OverlayWindow({
                   {text || "No text to display. Try capturing some text first!"}
                 </p>
               </div>
-
-              {/* Subtle copy hint */}
-              {text && (
-                <div
-                  className="absolute bottom-2 right-2 text-xs text-gray-300 opacity-60"
-                  title="Double-click text to copy"
-                >
-                  <span className="text-xs">📋</span>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -188,8 +174,8 @@ function OverlayWindow({
         // Full mode - normal header and loading
         <>
           {/* Draggable header */}
-          <div className="draggable flex justify-between items-center mb-4 pb-2 border-b border-gray-200 p-6 max-w-lg">
-            <h2 className="text-lg font-semibold text-gray-800">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200 p-6 max-w-lg">
+            <h2 className="text-lg font-semibold text-gray-800 font-heading">
               {isLoading ? "Processing Text" : "Simplified Text"}
             </h2>
             <button

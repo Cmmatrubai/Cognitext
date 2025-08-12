@@ -8,14 +8,16 @@
     "dev": "concurrently \"npm run build:renderer\" \"npm run start\"",
     "build:renderer": "webpack --mode development --watch",
     "build:renderer:prod": "webpack --mode production",
-    "build": "npm run build:renderer:prod && electron-builder",
-    "build:win": "npm run build:renderer:prod && electron-builder --win",
-    "build:mac": "npm run build:renderer:prod && electron-builder --mac",
-    "build:linux": "npm run build:renderer:prod && electron-builder --linux",
-    "dist": "npm run build:renderer:prod && electron-builder --publish=never",
-    "dist:win": "npm run build:renderer:prod && electron-builder --win --publish=never",
-    "dist:mac": "npm run build:renderer:prod && electron-builder --mac --publish=never",
-    "dist:linux": "npm run build:renderer:prod && electron-builder --linux --publish=never"
+    "build:css": "tailwindcss -i ./src/renderer/styles.css -o ./dist/styles.css --watch",
+    "build:css:prod": "tailwindcss -i ./src/renderer/styles.css -o ./dist/styles.css --minify",
+    "build": "npm run build:css:prod && npm run build:renderer:prod && electron .",
+    "build:win": "npm run build:css:prod && npm run build:renderer:prod && electron-builder --win",
+    "build:mac": "npm run build:css:prod && npm run build:renderer:prod && electron-builder --mac",
+    "build:linux": "npm run build:css:prod && npm run build:renderer:prod && electron-builder --linux",
+    "dist": "npm run build:css:prod && npm run build:renderer:prod && electron-builder --publish=never",
+    "dist:win": "npm run build:css:prod && npm run build:renderer:prod && electron-builder --win --publish=never",
+    "dist:mac": "npm run build:css:prod && npm run build:renderer:prod && electron-builder --mac --publish=never",
+    "dist:linux": "npm run build:css:prod && npm run build:renderer:prod && electron-builder --mac --publish=never"
   },
   "build": {
     "appId": "com.cognitext.app",
@@ -102,6 +104,9 @@
   },
   "dependencies": {
     "axios": "^1.7.2",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tesseract.js": "^5.0.4"

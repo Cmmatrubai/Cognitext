@@ -7,6 +7,9 @@ const {
   desktopCapturer,
 } = require("electron");
 const path = require("path");
+const express = require("express");
+const cors = require("cors");
+const { v4: uuidv4 } = require("uuid");
 
 let mainWindow;
 let overlayWindow;
@@ -19,6 +22,96 @@ let userPreferences = {
   theme: "light",
   overlayPosition: "smart", // smart, right, left, below, above
 };
+
+// Local server for browser extension
+let localServer = null;
+let serverPort = null;
+let serverId = null;
+
+function startLocalServer() {
+  return new Promise((resolve, reject) => {
+    try {
+      // Generate unique ID for this app instance
+      serverId = uuidv4();
+
+      // Find available port
+      const net = require("net");
+      const findAvailablePort = (startPort) => {
+        return new Promise((resolve, reject) => {
+          const server = net.createServer();
+          server.listen(startPort, () => {
+            const port = server.address().port;
+            server.close(() => resolve(port));
+          });
+          server.on("error", () => {
+            resolve(findAvailablePort(startPort + 1));
+          });
+        });
+      };
+
+      findAvailablePort(3000)
+        .then((port) => {
+          serverPort = port;
+
+          // Create Express app
+          localServer = express();
+
+          // Enable CORS for browser extension
+          localServer.use(cors());
+          localServer.use(express.json());
+
+          // Health check endpoint
+          localServer.get("/api/health", (req, res) => {
+            res.json({
+              status: "ok",
+              appId: serverId,
+              port: serverPort,
+              version: "1.0.0",
+            });
+          });
+
+          // Text simplification endpoint
+          localServer.post("/api/simplify", async (req, res) => {
+            try {
+              const { text, source } = req.body;
+
+              if (!text) {
+                return res.status(400).json({ error: "No text provided" });
+              }
+
+              console.log(
+                `Received text from ${source || "unknown"}:`,
+                text.substring(0, 100) + "..."
+              );
+
+              // Use the same simplification logic as the main app
+              const simplifiedText = await simplifyTextWithBackend(text);
+
+              res.json({
+                simplifiedText: simplifiedText,
+                originalLength: text.length,
+                simplifiedLength: simplifiedText.length,
+              });
+            } catch (error) {
+              console.error("Error in /api/simplify:", error);
+              res.status(500).json({ error: error.message });
+            }
+          });
+
+          // Start server
+          localServer.listen(serverPort, () => {
+            console.log(
+              `Local server started on port ${serverPort} with ID ${serverId}`
+            );
+            resolve();
+          });
+        })
+        .catch(reject);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -108,7 +201,30 @@ function createOverlayWindow(capturedRegion = null) {
     },
     show: false,
     transparent: true,
+    // Enable dragging for frameless window
+    // titleBarStyle: "hidden", // Commented out for Windows compatibility
+    // titleBarOverlay: false, // Commented out for Windows compatibility
+    // Additional properties for better dragging
+    hasShadow: false,
+    thickFrame: false,
   });
+
+  console.log("Created overlay window with properties:", {
+    width: overlayWidth,
+    height: overlayHeight,
+    x,
+    y,
+    movable: overlayWindow.isMovable(),
+    resizable: overlayWindow.isResizable(),
+  });
+
+  // Ensure the window is movable
+  overlayWindow.setMovable(true);
+  overlayWindow.setResizable(true);
+
+  // Additional Windows-specific properties
+  overlayWindow.setFocusable(true);
+  overlayWindow.setAlwaysOnTop(true);
 
   overlayWindow.loadFile(path.join(__dirname, "dist", "index.html"), {
     search: "mode=overlay",
@@ -116,6 +232,12 @@ function createOverlayWindow(capturedRegion = null) {
 
   overlayWindow.webContents.on("did-finish-load", () => {
     console.log("Overlay window loaded and ready");
+    console.log("Overlay window properties after load:", {
+      movable: overlayWindow.isMovable(),
+      resizable: overlayWindow.isResizable(),
+      isVisible: overlayWindow.isVisible(),
+      isFocused: overlayWindow.isFocused(),
+    });
   });
 
   overlayWindow.on("closed", () => {
@@ -124,7 +246,15 @@ function createOverlayWindow(capturedRegion = null) {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  try {
+    // Start local server for browser extension
+    await startLocalServer();
+    console.log("Local server ready for browser extension");
+  } catch (error) {
+    console.error("Failed to start local server:", error);
+  }
+
   createMainWindow();
 
   // Register IPC handlers for region selection (once)
@@ -244,116 +374,35 @@ function createSelectionOverlay() {
         contextIsolation: true,
         preload: path.join(__dirname, "src", "preload.js"),
       },
+      // Ensure proper window behavior
+      focusable: true,
+      show: false,
+      // Additional properties for better behavior
+      hasShadow: false,
+      thickFrame: false,
     });
 
     // Store resolve function globally so handlers can access it
     global.selectionResolve = resolve;
 
+    // Show the selection window
+    global.selectionWindow.show();
+
     // Load selection HTML
-    global.selectionWindow.loadURL(
-      `data:text/html;charset=utf-8,${encodeURIComponent(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body {
-            margin: 0;
-            padding: 0;
-            background: rgba(0, 0, 0, 0.3);
-            cursor: crosshair;
-            user-select: none;
-            font-family: Arial, sans-serif;
-          }
-          .selection-box {
-            position: absolute;
-            border: 2px solid #007acc;
-            background: rgba(0, 122, 204, 0.1);
-            display: none;
-          }
-          .instructions {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-size: 16px;
-            text-align: center;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="instructions">
-          Click and drag to select the text area you want to simplify<br>
-          <small>Press ESC to cancel</small>
-        </div>
-        <div class="selection-box" id="selectionBox"></div>
-        
-        <script>
-          let isSelecting = false;
-          let startX, startY, endX, endY;
-          const selectionBox = document.getElementById('selectionBox');
-          
-          document.addEventListener('mousedown', (e) => {
-            isSelecting = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            selectionBox.style.left = startX + 'px';
-            selectionBox.style.top = startY + 'px';
-            selectionBox.style.width = '0px';
-            selectionBox.style.height = '0px';
-            selectionBox.style.display = 'block';
-          });
-          
-          document.addEventListener('mousemove', (e) => {
-            if (!isSelecting) return;
-            
-            endX = e.clientX;
-            endY = e.clientY;
-            
-            const left = Math.min(startX, endX);
-            const top = Math.min(startY, endY);
-            const width = Math.abs(endX - startX);
-            const height = Math.abs(endY - startY);
-            
-            selectionBox.style.left = left + 'px';
-            selectionBox.style.top = top + 'px';
-            selectionBox.style.width = width + 'px';
-            selectionBox.style.height = height + 'px';
-          });
-          
-          document.addEventListener('mouseup', (e) => {
-            if (!isSelecting) return;
-            isSelecting = false;
-            
-            endX = e.clientX;
-            endY = e.clientY;
-            
-            const selection = {
-              x: Math.min(startX, endX),
-              y: Math.min(startY, endY),
-              width: Math.abs(endX - startX),
-              height: Math.abs(endY - startY)
-            };
-            
-            // Only proceed if selection is large enough
-            if (selection.width > 20 && selection.height > 20) {
-              window.electronAPI.onRegionSelected(selection);
-            }
-          });
-          
-          document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-              window.electronAPI.onSelectionCancelled();
-            }
-          });
-        </script>
-      </body>
-      </html>
-    `)}`
+    global.selectionWindow.loadFile(
+      path.join(__dirname, "dist", "selection.html")
     );
+
+    // Add debugging for selection window
+    global.selectionWindow.webContents.on("did-finish-load", () => {
+      console.log("Selection window loaded and ready");
+      console.log("Selection window properties:", {
+        movable: global.selectionWindow.isMovable(),
+        resizable: global.selectionWindow.isResizable(),
+        isVisible: global.selectionWindow.isVisible(),
+        isFocused: global.selectionWindow.isFocused(),
+      });
+    });
 
     // Handle window close
     global.selectionWindow.on("closed", () => {
@@ -377,6 +426,8 @@ async function captureRegion(selection) {
 
     // Wait for overlay window to be ready
     overlayWindow.show();
+    overlayWindow.focus();
+    overlayWindow.setAlwaysOnTop(true);
 
     // Wait for the overlay window to be fully loaded before sending events
     const waitForOverlayReady = () => {
@@ -599,8 +650,11 @@ function postProcessOCRText(text) {
 
 async function simplifyTextWithBackend(text) {
   try {
-    // Update to AI processing stage
-    overlayWindow.webContents.send("loading-stage", "ai");
+    // Update to AI processing stage (only if overlay window exists)
+    if (overlayWindow && overlayWindow.webContents) {
+      overlayWindow.webContents.send("loading-stage", "ai");
+    }
+
     console.log(
       "Sending text to backend for simplification:",
       text.substring(0, 100) + "..."
@@ -608,8 +662,17 @@ async function simplifyTextWithBackend(text) {
 
     const axios = require("axios");
 
+    // Import the appropriate config file
+    // Change this line to switch between local and production:
+    const config = require("./config.local"); // For localhost:8080
+    //const config = require("./config.prod"); // For https://cognitext.onrender.com
+
+    // Get API base URL from config
+    const apiBaseUrl = config.apiBaseUrl;
+    console.log("Using API base URL:", apiBaseUrl);
+
     const response = await axios.post(
-      "http://localhost:8080/api/v1/simplify",
+      `${apiBaseUrl}/api/v1/simplify`,
       {
         text: text,
         gradeLevel: userPreferences.gradeLevel,
@@ -628,26 +691,35 @@ async function simplifyTextWithBackend(text) {
       simplifiedText?.length
     );
 
-    // Send window dimensions and text
-    overlayWindow.webContents.send("window-dimensions", {
-      width: overlayWindow.getSize()[0],
-      height: overlayWindow.getSize()[1],
-    });
-    overlayWindow.webContents.send("original-text-received", text);
-    overlayWindow.webContents.send("text-simplified", simplifiedText);
+    // Send window dimensions and text (only if overlay window exists)
+    if (overlayWindow && overlayWindow.webContents) {
+      overlayWindow.webContents.send("window-dimensions", {
+        width: overlayWindow.getSize()[0],
+        height: overlayWindow.getSize()[1],
+      });
+      overlayWindow.webContents.send("original-text-received", text);
+      overlayWindow.webContents.send("text-simplified", simplifiedText);
+    }
+
+    return simplifiedText;
   } catch (error) {
     console.error("Backend simplification failed:", error);
 
-    // Fallback to showing original text if backend fails
-    overlayWindow.webContents.send("window-dimensions", {
-      width: overlayWindow.getSize()[0],
-      height: overlayWindow.getSize()[1],
-    });
-    overlayWindow.webContents.send("original-text-received", text);
-    overlayWindow.webContents.send(
-      "text-simplified",
-      `Backend unavailable. Original text:\n\n${text}`
-    );
+    // Fallback to showing original text if backend fails (only if overlay window exists)
+    if (overlayWindow && overlayWindow.webContents) {
+      overlayWindow.webContents.send("window-dimensions", {
+        width: overlayWindow.getSize()[0],
+        height: overlayWindow.getSize()[1],
+      });
+      overlayWindow.webContents.send("original-text-received", text);
+      overlayWindow.webContents.send(
+        "text-simplified",
+        `Backend unavailable. Original text:\n\n${text}`
+      );
+    }
+
+    // Return fallback text for browser extension
+    return `Backend unavailable. Original text:\n\n${text}`;
   }
 }
 

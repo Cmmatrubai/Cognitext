@@ -95,16 +95,16 @@ public class TextSimplificationService {
 
     private String getSystemPrompt(int gradeLevel) {
         return String.format(
-            "You are a text simplification expert. Your task is to rewrite the given text " +
-            "to be easily understood by a %d-grade student (age %d). " +
+            "Simplify this text for a %d-grade reading level. Provide only the simplified text without any introductory sentences or explanations about the reading level. " +
             "Rules: " +
             "1. Use simple, common words " +
             "2. Write shorter sentences " +
             "3. Explain complex concepts in simple terms " +
             "4. Keep the same meaning and important information " +
             "5. Make it engaging and clear " +
-            "6. Don't add extra information not in the original text",
-            gradeLevel, gradeLevel + 5
+            "6. Don't add extra information not in the original text " +
+            "7. Start directly with the simplified content - no meta-commentary",
+            gradeLevel
         );
     }
 
@@ -132,8 +132,8 @@ public class TextSimplificationService {
         }
         
         return String.format(
-            "[MOCK RESPONSE - Grade %d] %s This text has been made simpler for easier reading.",
-            gradeLevel, simplified.toString().trim()
+            "%s",
+            simplified.toString().trim()
         );
     }
 }

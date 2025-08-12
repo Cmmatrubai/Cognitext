@@ -2,13 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap");
+
+/* Base font styling */
+body {
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Space Mono", monospace;
+}
+
+/* Utility classes for fonts */
+.font-body {
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.font-heading {
+  font-family: "Space Mono", monospace;
+}
+
+.font-mono {
+  font-family: "Space Mono", monospace;
+}
 
 /* Custom styles for the overlay window */
 .overlay-window {
-  @apply bg-white rounded-lg shadow-2xl border border-gray-200;
+  @apply bg-transparent rounded-lg shadow-2xl border border-gray-200;
   backdrop-filter: blur(10px);
-  background-color: rgba(255, 255, 255, 0.95);
+  background-color: transparent !important;
+}
+
+.overlay-window.minimal-mode {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.minimal-overlay {
+  background-color: transparent !important;
+}
+
+/* Make the entire overlay window draggable by default */
+.overlay-window {
+  -webkit-app-region: drag;
 }
 
 .draggable {
@@ -17,4 +59,45 @@
 
 .no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* Make only the text content area draggable */
+.overlay-window * {
+  -webkit-app-region: no-drag;
+}
+
+.overlay-window .text-content {
+  -webkit-app-region: drag;
+}
+
+/* Disable text selection for simplified overlay */
+.select-text {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  cursor: default !important;
+}
+
+/* Make text content draggable */
+.text-content {
+  -webkit-app-region: drag;
+}
+
+/* Ensure buttons and interactive elements are not draggable */
+button,
+.close-button,
+.copy-button {
+  -webkit-app-region: no-drag;
+}
+
+/* Make sure the entire window area is draggable */
+body {
+  -webkit-app-region: drag;
+}
+
+/* Draggable header area */
+.draggable-header {
+  -webkit-app-region: drag;
+  cursor: move;
 }

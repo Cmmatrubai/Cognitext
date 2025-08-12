@@ -113,7 +113,9 @@ function PreferencesPage({ preferences, onPreferencesChange, onBack }) {
             </svg>
             Back to Main
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Preferences</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 font-heading">
+            Preferences
+          </h1>
           <p className="text-gray-600">
             Customize your text simplification experience
           </p>
@@ -122,7 +124,7 @@ function PreferencesPage({ preferences, onPreferencesChange, onBack }) {
         <div className="space-y-6">
           {/* Reading Level Setting */}
           <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3 font-heading">
               Reading Level
             </h3>
             <div className="mb-4">
@@ -153,7 +155,7 @@ function PreferencesPage({ preferences, onPreferencesChange, onBack }) {
 
           {/* OCR Settings */}
           <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3 font-heading">
               OCR Settings
             </h3>
             <div className="mb-4">
@@ -181,7 +183,7 @@ function PreferencesPage({ preferences, onPreferencesChange, onBack }) {
 
           {/* Overlay Positioning */}
           <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3 font-heading">
               Overlay Positioning
             </h3>
             <div className="mb-4">
@@ -224,7 +226,7 @@ function PreferencesPage({ preferences, onPreferencesChange, onBack }) {
 
           {/* Display Settings */}
           <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3 font-heading">
               Display Settings
             </h3>
 
@@ -262,7 +264,7 @@ function PreferencesPage({ preferences, onPreferencesChange, onBack }) {
 
           {/* Test Area */}
           <div className="bg-blue-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3 font-heading">
               Preview
             </h3>
             <div

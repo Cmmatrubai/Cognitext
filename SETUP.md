@@ -35,25 +35,5 @@ cd cognitext-backend
 ./mvnw spring-boot:run
 ```
 
-The application will automatically load your environment variables from the `.env` file.
-
-## Important Security Notes
-
-- ✅ **DO**: Keep your API keys in `.env` files (ignored by Git)
-- ✅ **DO**: Use the `env.example` file as a template for others
-- ❌ **DON'T**: Commit real API keys to version control
-- ❌ **DON'T**: Share your `.env` file or API keys
-
-## Alternative: System Environment Variables
-
-Instead of `.env` files, you can also set the environment variable system-wide:
-
-**Windows:**
-```cmd
-set GEMINI_API_KEY=your_api_key_here
-```
-
-**macOS/Linux:**
-```bash
-export GEMINI_API_KEY=your_api_key_here
-```
+To change production or local, go to main.js and search for the the line (const config) and switch to each one depeneding on what env you
+are using

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cognitext</title>
+    <style>
+      body {
+        width: 300px;
+        padding: 16px;
+        font-family: "Inter", system-ui, sans-serif;
+        margin: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .header p {
+        margin: 8px 0 0 0;
+        font-size: 12px;
+        opacity: 0.9;
+      }
+
+      .status {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+        font-size: 14px;
+      }
+
+      .status.connected {
+        border-left: 4px solid #4ade80;
+      }
+
+      .status.disconnected {
+        border-left: 4px solid #f87171;
+      }
+
+      .button {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+        margin-bottom: 8px;
+      }
+
+      .button:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-1px);
+      }
+
+      .button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .settings {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .settings h3 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .setting-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 12px;
+      }
+
+      .toggle {
+        position: relative;
+        width: 40px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .toggle.active {
+        background: #4ade80;
+      }
+
+      .toggle::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: transform 0.2s;
+      }
+
+      .toggle.active::after {
+        transform: translateX(20px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Cognitext</h1>
+      <p>AI-powered text simplification</p>
+    </div>
+
+    <div id="status" class="status disconnected">
+      <div id="statusText">Checking connection...</div>
+    </div>
+
+    <button id="simplifyBtn" class="button" disabled>Simplify This Page</button>
+
+    <button id="retryBtn" class="button">Retry Connection</button>
+
+    <button id="settingsBtn" class="button">Settings</button>
+
+    <div class="settings">
+      <h3>Preferences</h3>
+      <div class="setting-item">
+        <span>Auto-simplify on page load</span>
+        <div id="autoSimplify" class="toggle"></div>
+      </div>
+      <div class="setting-item">
+        <span>Show simplified overlay</span>
+        <div id="showOverlay" class="toggle active"></div>
+      </div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
