@@ -35,6 +35,8 @@ function App() {
     // Listen for messages from main process
     window.electronAPI?.onTextSimplified((text) => {
       console.log("App: Text simplified received:", text);
+      console.log("App: Text length:", text?.length);
+      console.log("App: Text preview:", text?.substring(0, 100));
       setSimplifiedText(text);
       setIsLoading(false);
       setIsOverlayMode(true);
@@ -72,6 +74,12 @@ function App() {
   };
 
   if (isOverlayMode) {
+    console.log("App: Rendering OverlayWindow with props:", {
+      text: simplifiedText,
+      textLength: simplifiedText?.length,
+      isLoading,
+      loadingStage,
+    });
     return (
       <OverlayWindow
         text={simplifiedText}
@@ -130,7 +138,7 @@ function App() {
           Cognitext works system-wide, in real time, so you can read better
           anywhere.
         </p>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Instant Capture */}
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 hover:shadow-lg transition-shadow">
@@ -241,11 +249,9 @@ function App() {
                 Reading Level
               </h4>
               <p className="text-blue-600 text-sm">
-                {preferences.gradeLevel === 13
-                  ? "College Level"
-                  : `${preferences.gradeLevel}${getOrdinalSuffix(
-                      preferences.gradeLevel
-                    )} Grade`}
+                {`${preferences.gradeLevel}${getOrdinalSuffix(
+                  preferences.gradeLevel
+                )} Grade`}
               </p>
             </div>
             <div className="bg-green-50 rounded-lg p-3">
@@ -257,7 +263,9 @@ function App() {
               </p>
             </div>
             <div className="bg-purple-50 rounded-lg p-3">
-              <h4 className="font-semibold text-purple-800 mb-1 text-sm">Font Size</h4>
+              <h4 className="font-semibold text-purple-800 mb-1 text-sm">
+                Font Size
+              </h4>
               <p className="text-purple-600 text-sm capitalize">
                 {preferences.fontSize}
               </p>

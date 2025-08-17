@@ -50,7 +50,7 @@ The app will automatically start a local server on a random port (usually 3000-3
 1. Navigate to any article or text-heavy webpage
 2. Click the Cognitext extension icon
 3. Click "Simplify This Page"
-4. The simplified text should appear in an overlay
+4. The simplified text should appear in the Electron app overlay window
 
 ## Troubleshooting
 
@@ -71,6 +71,13 @@ The app will automatically start a local server on a random port (usually 3000-3
 - Check that the Cognitext app is connected to the internet
 - Verify the backend API is working
 - Check the browser console for error messages
+
+### Electron overlay not appearing
+
+- Make sure the Cognitext desktop app is running and visible
+- Check that the app has permission to create overlay windows
+- Try restarting the Cognitext app
+- Check the app console for any error messages
 
 ## Next Steps
 

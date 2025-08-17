@@ -10,6 +10,13 @@ function OverlayWindow({
   const contentRef = useRef(null);
   const [progress, setProgress] = useState(0);
 
+  console.log("OverlayWindow: Received props:", {
+    text: text,
+    textLength: text?.length,
+    isLoading,
+    loadingStage,
+  });
+
   // Resize window to content when in minimal mode
   useEffect(() => {
     if (!isLoading && text && contentRef.current) {
@@ -141,7 +148,7 @@ function OverlayWindow({
             {/* Transparent background with subtle shadow - exact content size */}
             <div
               ref={contentRef}
-              className="relative bg-gray-900 bg-opacity-90 backdrop-blur-md rounded-xl p-5 shadow-2xl border-2 border-gray-200 border-opacity-50 max-w-md m-2"
+              className="relative bg-gray-900 bg-opacity-90 backdrop-blur-md rounded-xl p-5 shadow-2xl border-2 border-gray-200 border-opacity-50 max-w-md m-2 draggable-header"
               style={{
                 boxShadow:
                   "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1)",
@@ -174,7 +181,7 @@ function OverlayWindow({
         // Full mode - normal header and loading
         <>
           {/* Draggable header */}
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200 p-6 max-w-lg">
+          <div className="draggable-header flex justify-between items-center mb-4 pb-2 border-b border-gray-200 p-6 max-w-lg">
             <h2 className="text-lg font-semibold text-gray-800 font-heading">
               {isLoading ? "Processing Text" : "Simplified Text"}
             </h2>

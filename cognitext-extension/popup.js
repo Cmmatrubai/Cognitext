@@ -161,46 +161,22 @@ class CognitextPopup {
 
   async simplifyCurrentPage() {
     if (!this.isConnected) {
-      alert("Please start the Cognitext app first.");
+      alert("Not connected to Cognitext app. Please start the app first.");
       return;
     }
 
     try {
-      // Get the active tab
+      // Get current tab
       const [tab] = await chrome.tabs.query({
         active: true,
         currentWindow: true,
       });
-
-      console.log("Popup: Got active tab:", tab.url);
-
-      // Check if we can inject content script
-      if (!tab.url.startsWith("http")) {
-        alert(
-          "Cannot simplify this page. Please navigate to a web page first."
-        );
+      if (!tab) {
+        alert("No active tab found.");
         return;
       }
 
-      // Try to inject content script if not already present
-      try {
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ["content.js"],
-        });
-        console.log("Popup: Content script injected");
-      } catch (injectError) {
-        console.log(
-          "Popup: Content script already present or injection failed:",
-          injectError
-        );
-      }
-
-      // Wait a moment for content script to initialize
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // Send message to content script to extract text
-      console.log("Popup: Sending extractText message to content script");
+      // Extract text from current page
       const response = await chrome.tabs.sendMessage(tab.id, {
         action: "extractText",
       });
@@ -213,12 +189,9 @@ class CognitextPopup {
         const simplifiedText = await this.sendToServer(response.text);
 
         if (simplifiedText) {
-          console.log("Popup: Got simplified text, showing overlay");
-          // Show simplified text in overlay
-          await chrome.tabs.sendMessage(tab.id, {
-            action: "showSimplifiedText",
-            text: simplifiedText,
-          });
+          console.log("Popup: Got simplified text, showing Electron overlay");
+          // Show simplified text in Electron overlay instead of browser overlay
+          await this.showElectronOverlay(simplifiedText);
         }
       } else {
         alert("No text found on this page to simplify.");
@@ -257,6 +230,35 @@ class CognitextPopup {
       }
     } catch (error) {
       console.error("Error sending to server:", error);
+      throw error;
+    }
+  }
+
+  async showElectronOverlay(text) {
+    try {
+      const response = await fetch(
+        `http://localhost:${this.serverPort}/api/show-overlay`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: text,
+            source: "browser-extension",
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Electron overlay response:", data);
+        return data;
+      } else {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Error showing Electron overlay:", error);
       throw error;
     }
   }

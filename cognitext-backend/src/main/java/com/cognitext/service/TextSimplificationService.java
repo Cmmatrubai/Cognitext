@@ -98,11 +98,11 @@ public class TextSimplificationService {
             "Simplify this text for a %d-grade reading level. Provide only the simplified text without any introductory sentences or explanations about the reading level. " +
             "Rules: " +
             "1. Use simple, common words " +
-            "2. Write shorter sentences " +
-            "3. Explain complex concepts in simple terms " +
-            "4. Keep the same meaning and important information " +
-            "5. Make it engaging and clear " +
-            "6. Don't add extra information not in the original text " +
+            "2. Explain complex concepts in simple terms " +
+            "3. Keep the same meaning and important information " +
+            "4. Make it engaging and clear " +
+            "5. Don't add extra information not in the original text " +
+            "6. Have the sentences flow naturally and make it like it was written by a human " +
             "7. Start directly with the simplified content - no meta-commentary",
             gradeLevel
         );

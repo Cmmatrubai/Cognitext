@@ -6,9 +6,8 @@ A browser extension that works with your local Cognitext app to automatically si
 
 - **One-click text simplification**: Click the extension icon to simplify the current page
 - **Smart text extraction**: Automatically finds and extracts the main content from web pages
-- **Beautiful overlay**: Shows simplified text in a clean, readable overlay
+- **Electron overlay display**: Shows simplified text in the beautiful Electron app overlay
 - **Auto-simplify**: Option to automatically simplify article pages on load
-- **Copy to clipboard**: Easy copying of simplified text
 - **Keyboard shortcut**: Use Ctrl+Shift+S to quickly simplify any page
 
 ## Installation
@@ -44,7 +43,7 @@ A browser extension that works with your local Cognitext app to automatically si
 1. Navigate to any webpage with text content
 2. Click the Cognitext extension icon in your browser toolbar
 3. Click "Simplify This Page" to extract and simplify the text
-4. The simplified text will appear in an overlay on the page
+4. The simplified text will appear in the Electron app overlay window
 
 ### Keyboard Shortcut
 
@@ -55,17 +54,11 @@ A browser extension that works with your local Cognitext app to automatically si
 - Enable "Auto-simplify on page load" in the extension settings
 - The extension will automatically simplify article pages when you visit them
 
-### Copying Text
-
-- Click the "Copy Text" button in the simplified text overlay
-- The text will be copied to your clipboard
-
 ## Settings
 
 ### Extension Preferences
 
 - **Auto-simplify on page load**: Automatically simplify article pages
-- **Show simplified overlay**: Display the simplified text overlay on the page
 
 ### Connection Status
 
@@ -93,6 +86,12 @@ The extension shows your connection status to the Cognitext app:
 
 - Some sites may block content scripts for security reasons
 - Try refreshing the page or disabling other extensions that might interfere
+
+### Electron overlay not appearing
+
+- Make sure the Cognitext desktop app is running and visible
+- Check that the app has permission to create overlay windows
+- Try restarting the Cognitext app
 
 ## Development
 
@@ -126,10 +125,4 @@ For issues or questions:
 
 ## Version History
 
-### v1.0.0
-
-- Initial release
-- Basic text extraction and simplification
-- Popup interface with connection status
-- Auto-simplify feature
-- Keyboard shortcuts
+- **v1.0.0**: Initial release with Electron overlay integration

@@ -98,6 +98,73 @@ function startLocalServer() {
             }
           });
 
+          // New endpoint for browser extension to trigger Electron overlay
+          localServer.post("/api/show-overlay", async (req, res) => {
+            try {
+              const { text, source } = req.body;
+
+              if (!text) {
+                return res.status(400).json({ error: "No text provided" });
+              }
+
+              console.log(
+                `Browser extension requesting overlay display for text from ${
+                  source || "unknown"
+                }:`,
+                text.substring(0, 100) + "..."
+              );
+
+              // Create overlay window if it doesn't exist
+              if (!overlayWindow || overlayWindow.isDestroyed()) {
+                console.log("Creating new overlay window...");
+                createOverlayWindow();
+              } else {
+                console.log("Using existing overlay window");
+              }
+
+              // Wait for overlay window to be ready
+              await new Promise((resolve) => {
+                const checkReady = () => {
+                  if (
+                    overlayWindow &&
+                    !overlayWindow.isDestroyed() &&
+                    overlayWindow.webContents
+                  ) {
+                    console.log("Overlay window is ready");
+                    resolve();
+                  } else {
+                    console.log("Waiting for overlay window to be ready...");
+                    setTimeout(checkReady, 100);
+                  }
+                };
+                checkReady();
+              });
+
+              // Show the overlay window first
+              console.log("Showing overlay window...");
+              overlayWindow.show();
+              overlayWindow.focus();
+
+              // Wait a moment for the window to be visible and React to initialize
+              await new Promise((resolve) => setTimeout(resolve, 500));
+
+              // Send the simplified text directly to the overlay window
+              console.log(
+                "Sending text-simplified event with text length:",
+                text.length
+              );
+              overlayWindow.webContents.send("text-simplified", text);
+
+              res.json({
+                success: true,
+                message: "Overlay window created and text displayed",
+              });
+            } catch (error) {
+              console.error("Error in /api/show-overlay:", error);
+              res.status(500).json({ error: error.message });
+            }
+          });
+
           // Start server
           localServer.listen(serverPort, () => {
             console.log(

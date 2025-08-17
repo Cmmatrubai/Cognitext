@@ -40,7 +40,6 @@ function PreferencesPage({ preferences, onPreferencesChange, onBack }) {
   };
 
   const getGradeLevelText = (level) => {
-    if (level === 13) return "College Level";
     const ordinals = [
       "",
       "1st",
@@ -73,7 +72,6 @@ function PreferencesPage({ preferences, onPreferencesChange, onBack }) {
       10: "Complex paragraphs, specialized terms",
       11: "Advanced academic writing",
       12: "Pre-college level complexity",
-      13: "University-level academic text",
     };
     return descriptions[level] || "Simplified text";
   };
@@ -135,7 +133,7 @@ function PreferencesPage({ preferences, onPreferencesChange, onBack }) {
               <input
                 type="range"
                 min="1"
-                max="13"
+                max="12"
                 value={localPreferences.gradeLevel}
                 onChange={handleGradeLevelChange}
                 className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer slider"
@@ -144,7 +142,6 @@ function PreferencesPage({ preferences, onPreferencesChange, onBack }) {
                 <span>1st Grade</span>
                 <span>6th Grade</span>
                 <span>12th Grade</span>
-                <span>College</span>
               </div>
             </div>
             <p className="text-sm text-gray-600 bg-white p-3 rounded border-l-4 border-blue-400">

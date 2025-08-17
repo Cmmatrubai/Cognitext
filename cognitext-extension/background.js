@@ -115,20 +115,16 @@ class CognitextBackground {
   }
 
   async handleAutoSimplify(request, sender) {
-    if (!this.isConnected) {
-      console.log("Cannot auto-simplify: not connected to server");
-      return;
-    }
-
     try {
+      console.log("Background: Auto-simplifying text from:", request.url);
+      
+      // Send text to local server for simplification
       const simplifiedText = await this.sendToServer(request.text);
 
       if (simplifiedText) {
-        // Send simplified text back to the content script
-        await chrome.tabs.sendMessage(sender.tab.id, {
-          action: "showSimplifiedText",
-          text: simplifiedText,
-        });
+        console.log("Background: Got simplified text, showing Electron overlay");
+        // Show simplified text in Electron overlay instead of browser overlay
+        await this.showElectronOverlay(simplifiedText);
       }
     } catch (error) {
       console.error("Error in auto-simplify:", error);
@@ -159,6 +155,35 @@ class CognitextBackground {
       }
     } catch (error) {
       console.error("Error sending to server:", error);
+      throw error;
+    }
+  }
+
+  async showElectronOverlay(text) {
+    try {
+      const response = await fetch(
+        `http://localhost:${this.serverPort}/api/show-overlay`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: text,
+            source: "browser-extension-auto",
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Background: Electron overlay response:", data);
+        return data;
+      } else {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Background: Error showing Electron overlay:", error);
       throw error;
     }
   }

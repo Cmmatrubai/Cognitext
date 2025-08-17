@@ -48,9 +48,9 @@ h6 {
   background-color: transparent !important;
 }
 
-/* Make the entire overlay window draggable by default */
+/* Make only specific areas draggable, not the entire window */
 .overlay-window {
-  -webkit-app-region: drag;
+  -webkit-app-region: no-drag;
 }
 
 .draggable {
@@ -91,10 +91,10 @@ button,
   -webkit-app-region: no-drag;
 }
 
-/* Make sure the entire window area is draggable */
-body {
+/* Remove the body drag rule that might interfere with window movement */
+/* body {
   -webkit-app-region: drag;
-}
+} */
 
 /* Draggable header area */
 .draggable-header {
