@@ -56,6 +56,9 @@ function OverlayWindow({
         textArea: "bg-gray-700 text-white",
         button: "bg-blue-700 hover:bg-blue-800",
         closeButton: "border-gray-600 text-gray-300 hover:bg-gray-700",
+        overlay: "bg-gray-900 bg-opacity-90",
+        content: "bg-gray-800 text-white",
+        closeBtn: "bg-gray-600 bg-opacity-80 hover:bg-opacity-100 text-white",
       };
     }
     return {
@@ -64,6 +67,9 @@ function OverlayWindow({
       textArea: "bg-gray-50 text-gray-800",
       button: "bg-blue-600 hover:bg-blue-700",
       closeButton: "border-gray-300 text-gray-700 hover:bg-gray-50",
+      overlay: "bg-white bg-opacity-90",
+      content: "bg-white text-gray-800",
+      closeBtn: "bg-gray-500 bg-opacity-80 hover:bg-opacity-100 text-white",
     };
   };
 
@@ -134,6 +140,8 @@ function OverlayWindow({
     }
   };
 
+  const themeClasses = getThemeClasses();
+
   return (
     <div
       className={`overlay-window ${
@@ -148,7 +156,7 @@ function OverlayWindow({
             {/* Transparent background with subtle shadow - exact content size */}
             <div
               ref={contentRef}
-              className="relative bg-gray-900 bg-opacity-90 backdrop-blur-md rounded-xl p-5 shadow-2xl border-2 border-gray-200 border-opacity-50 max-w-md m-2 draggable-header"
+              className={`relative ${themeClasses.overlay} backdrop-blur-md rounded-xl p-5 shadow-2xl border-2 border-opacity-50 max-w-md m-2 draggable-header`}
               style={{
                 boxShadow:
                   "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1)",
@@ -157,7 +165,7 @@ function OverlayWindow({
               {/* Close button - top right corner */}
               <button
                 onClick={onClose}
-                className="no-drag absolute -top-2 -right-2 w-6 h-6 bg-gray-600 bg-opacity-80 hover:bg-opacity-100 text-white rounded-full text-sm font-bold flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-md"
+                className={`no-drag absolute -top-2 -right-2 w-6 h-6 ${themeClasses.closeBtn} rounded-full text-sm font-bold flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-md`}
                 title="Close"
               >
                 ×
@@ -166,9 +174,14 @@ function OverlayWindow({
               {/* Text content with high contrast for readability */}
               <div className="pr-4 text-content">
                 <p
-                  className={`text-white leading-relaxed ${getFontSizeClass()} drop-shadow-sm select-text`}
+                  className={`${
+                    themeClasses.text
+                  } leading-relaxed ${getFontSizeClass()} drop-shadow-sm select-text`}
                   style={{
-                    textShadow: "1px 1px 2px rgba(0,0,0,0.8)",
+                    textShadow:
+                      preferences.theme === "dark"
+                        ? "1px 1px 2px rgba(0,0,0,0.8)"
+                        : "1px 1px 2px rgba(255,255,255,0.8)",
                   }}
                 >
                   {text || "No text to display. Try capturing some text first!"}
@@ -181,20 +194,24 @@ function OverlayWindow({
         // Full mode - normal header and loading
         <>
           {/* Draggable header */}
-          <div className="draggable-header flex justify-between items-center mb-4 pb-2 border-b border-gray-200 p-6 max-w-lg">
-            <h2 className="text-lg font-semibold text-gray-800 font-heading">
+          <div
+            className={`draggable-header flex justify-between items-center mb-4 pb-2 border-b ${themeClasses.closeButton} p-6 max-w-lg`}
+          >
+            <h2
+              className={`text-lg font-semibold ${themeClasses.text} font-heading`}
+            >
               {isLoading ? "Processing Text" : "Simplified Text"}
             </h2>
             <button
               onClick={onClose}
-              className="no-drag text-gray-500 hover:text-gray-700 text-xl font-bold w-6 h-6 flex items-center justify-center"
+              className={`no-drag ${themeClasses.closeButton} text-xl font-bold w-6 h-6 flex items-center justify-center`}
             >
               ×
             </button>
           </div>
 
           {/* Content area */}
-          <div className="no-drag p-6 max-w-lg">
+          <div className={`no-drag p-6 max-w-lg ${themeClasses.container}`}>
             {isLoading ? (
               <div className="py-8">
                 {/* Loading Animation */}
@@ -209,7 +226,7 @@ function OverlayWindow({
 
                   {/* Loading Text */}
                   <div className="text-center space-y-2">
-                    <p className="text-gray-800 font-medium text-lg">
+                    <p className={`${themeClasses.text} font-medium text-lg`}>
                       {getLoadingText()}
                     </p>
                     <div className="flex items-center space-x-2">
@@ -288,7 +305,7 @@ function OverlayWindow({
               </div>
             ) : (
               // Error or empty state
-              <div className="text-center text-gray-600">
+              <div className={`text-center ${themeClasses.text}`}>
                 {text || "No text to display. Try capturing some text first!"}
               </div>
             )}

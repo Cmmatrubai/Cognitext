@@ -27,6 +27,8 @@
     },
     "files": [
       "main.js",
+      "config.local.js",
+      "config.prod.js",
       "src/**/*",
       "dist/**/*",
       "node_modules/**/*",

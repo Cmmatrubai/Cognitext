@@ -7,6 +7,7 @@ const {
   desktopCapturer,
 } = require("electron");
 const path = require("path");
+const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
 const { v4: uuidv4 } = require("uuid");
@@ -22,6 +23,32 @@ let userPreferences = {
   theme: "light",
   overlayPosition: "smart", // smart, right, left, below, above
 };
+
+// Load preferences from file on startup
+function loadPreferences() {
+  try {
+    const preferencesPath = path.join(__dirname, "preferences.json");
+    if (fs.existsSync(preferencesPath)) {
+      const data = fs.readFileSync(preferencesPath, "utf8");
+      const savedPreferences = JSON.parse(data);
+      userPreferences = { ...userPreferences, ...savedPreferences };
+      console.log("Loaded preferences from file:", userPreferences);
+    }
+  } catch (error) {
+    console.error("Error loading preferences:", error);
+  }
+}
+
+// Save preferences to file
+function savePreferences() {
+  try {
+    const preferencesPath = path.join(__dirname, "preferences.json");
+    fs.writeFileSync(preferencesPath, JSON.stringify(userPreferences, null, 2));
+    console.log("Saved preferences to file:", userPreferences);
+  } catch (error) {
+    console.error("Error saving preferences:", error);
+  }
+}
 
 // Local server for browser extension
 let localServer = null;
@@ -314,6 +341,9 @@ function createOverlayWindow(capturedRegion = null) {
 }
 
 app.whenReady().then(async () => {
+  // Load saved preferences on startup
+  loadPreferences();
+
   try {
     // Start local server for browser extension
     await startLocalServer();
@@ -385,6 +415,11 @@ ipcMain.handle("close-overlay", () => {
 ipcMain.handle("update-preferences", (event, preferences) => {
   console.log("Updating preferences:", preferences);
   userPreferences = { ...userPreferences, ...preferences };
+  savePreferences(); // Save preferences to file
+  return userPreferences;
+});
+
+ipcMain.handle("get-preferences", () => {
   return userPreferences;
 });
 
@@ -731,8 +766,8 @@ async function simplifyTextWithBackend(text) {
 
     // Import the appropriate config file
     // Change this line to switch between local and production:
-    const config = require("./config.local"); // For localhost:8080
-    //const config = require("./config.prod"); // For https://cognitext.onrender.com
+    //const config = require("./config.local"); // For localhost:8080
+    const config = require("./config.prod"); // For https://cognitext.onrender.com
 
     // Get API base URL from config
     const apiBaseUrl = config.apiBaseUrl;

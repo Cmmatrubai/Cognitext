@@ -1,0 +1,7 @@
+{
+  "gradeLevel": 10,
+  "ocrConfidenceThreshold": 80,
+  "fontSize": "medium",
+  "theme": "light",
+  "overlayPosition": "left"
+}

@@ -19,18 +19,43 @@ function App() {
   useEffect(() => {
     console.log("App: Setting up event listeners");
 
-    // Load saved preferences
-    try {
-      const savedPreferences = localStorage.getItem("cognitext-preferences");
-      if (savedPreferences) {
-        const parsed = JSON.parse(savedPreferences);
-        setPreferences((prevPrefs) => ({ ...prevPrefs, ...parsed }));
+    // Load saved preferences from main process
+    const loadPreferences = async () => {
+      try {
+        const savedPreferences = await window.electronAPI?.getPreferences?.();
+        if (savedPreferences) {
+          setPreferences((prevPrefs) => ({
+            ...prevPrefs,
+            ...savedPreferences,
+          }));
+          // Also save to localStorage for backup
+          localStorage.setItem(
+            "cognitext-preferences",
+            JSON.stringify(savedPreferences)
+          );
+        }
+      } catch (error) {
+        console.error("Error loading preferences from main process:", error);
+        // Fallback to localStorage
+        try {
+          const savedPreferences = localStorage.getItem(
+            "cognitext-preferences"
+          );
+          if (savedPreferences) {
+            const parsed = JSON.parse(savedPreferences);
+            setPreferences((prevPrefs) => ({ ...prevPrefs, ...parsed }));
+          }
+        } catch (localError) {
+          console.error(
+            "Error loading preferences from localStorage:",
+            localError
+          );
+          localStorage.removeItem("cognitext-preferences");
+        }
       }
-    } catch (error) {
-      console.error("Error loading preferences:", error);
-      // Clear corrupted preferences
-      localStorage.removeItem("cognitext-preferences");
-    }
+    };
+
+    loadPreferences();
 
     // Listen for messages from main process
     window.electronAPI?.onTextSimplified((text) => {
@@ -63,14 +88,18 @@ function App() {
     }
   }, []);
 
-  const handlePreferencesChange = (newPreferences) => {
+  const handlePreferencesChange = async (newPreferences) => {
     setPreferences(newPreferences);
     localStorage.setItem(
       "cognitext-preferences",
       JSON.stringify(newPreferences)
     );
     // Send preferences to main process
-    window.electronAPI?.updatePreferences?.(newPreferences);
+    try {
+      await window.electronAPI?.updatePreferences?.(newPreferences);
+    } catch (error) {
+      console.error("Error updating preferences in main process:", error);
+    }
   };
 
   if (isOverlayMode) {

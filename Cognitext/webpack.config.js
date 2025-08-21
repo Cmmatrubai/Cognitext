@@ -3,11 +3,14 @@ const path = require("path");
 
 module.exports = {
   mode: "development",
-  entry: "./src/renderer/index.js",
+  entry: {
+    index: "./src/renderer/index.js",
+    selection: "./src/renderer/selection.js",
+  },
   target: "electron-renderer",
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "renderer.js",
+    filename: "[name].js",
   },
   module: {
     rules: [
@@ -30,6 +33,13 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: "./src/renderer/index.html",
+      filename: "index.html",
+      chunks: ["index"],
+    }),
+    new HtmlWebpackPlugin({
+      template: "./src/renderer/selection.html",
+      filename: "selection.html",
+      chunks: ["selection"],
     }),
   ],
   resolve: {

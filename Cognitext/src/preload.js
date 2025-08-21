@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Preferences
   updatePreferences: (preferences) =>
     ipcRenderer.invoke("update-preferences", preferences),
+  getPreferences: () => ipcRenderer.invoke("get-preferences"),
 
   // Window management
   resizeOverlayWindow: (width, height) =>
